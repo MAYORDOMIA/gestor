@@ -25,8 +25,24 @@ export enum TransactionType {
   EGRESO = 'Egreso'
 }
 
+// SaaS Multi-empresa
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface Subscription {
+  organization_id: string;
+  has_gestor: boolean;
+  has_medidor: boolean;
+  has_cotizador_vidrio: boolean;
+  has_cotizador_aluminio: boolean;
+}
+
 export interface Transaction {
   id: string;
+  organization_id?: string;
   date: string;
   description: string;
   category: string;
@@ -37,6 +53,7 @@ export interface Transaction {
 
 export interface SupplierDebt {
   id: string;
+  organization_id?: string;
   supplierName: string;
   concept: string;
   totalAmount: number;
@@ -48,6 +65,7 @@ export interface SupplierDebt {
 
 export interface Employee {
   id: string;
+  organization_id?: string;
   name: string;
   dni: string;
   hourlyRate: number;
@@ -56,6 +74,7 @@ export interface Employee {
 
 export interface AttendanceRecord {
   id: string;
+  organization_id?: string;
   employeeId: string;
   date: string;
   startTime?: string;
@@ -67,6 +86,7 @@ export interface AttendanceRecord {
 
 export interface Client {
   id: string;
+  organization_id?: string;
   name: string;
   phone: string;
   email: string;
@@ -100,6 +120,7 @@ export interface ManufacturingTask {
 
 export interface Project {
   id: string;
+  organization_id?: string;
   title: string;
   clientId: string;
   status: ProjectStatus;
@@ -139,6 +160,7 @@ export interface Project {
 
 export interface BudgetRequest {
   id: string;
+  organization_id?: string;
   clientName: string;
   phone: string;
   email: string;

@@ -12,6 +12,7 @@ import AccountingManager from './components/AccountingManager';
 import PaymentsManager from './components/PaymentsManager';
 import SuppliersManager from './components/SuppliersManager';
 import EmployeeAttendanceManager from './components/EmployeeAttendanceManager';
+import SaaSAdmin from './components/SaaSAdmin';
 import { Bell, Search, Trash2, LayoutGrid, FileText, Settings, Hammer, Monitor } from 'lucide-react';
 import { BudgetRequest, Project, ProjectStatus, RequestStatus, SupplierDebt } from './types';
 
@@ -36,14 +37,12 @@ const App: React.FC = () => {
   const [supplierDebts, setSupplierDebts] = useState<SupplierDebt[]>([]);
   const [initialEmpId, setInitialEmpId] = useState<string | null>(null);
 
-  // Lógica para detectar escaneo de QR desde el celular
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const empId = params.get('empId');
     if (empId) {
       setInitialEmpId(empId);
       setActiveTab('attendance');
-      // Limpiamos la URL para que no quede el ID ahí siempre
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
@@ -95,6 +94,7 @@ const App: React.FC = () => {
       case 'payments': return <PaymentsManager projects={sentProjects} onUpdateProject={handleUpdateProject} />;
       case 'suppliers': return <SuppliersManager supplierDebts={supplierDebts} onAddDebt={handleAddDebt} onUpdateDebt={handleUpdateDebt} onDeleteDebt={handleDeleteDebt} />;
       case 'accounting': return <AccountingManager projects={sentProjects} supplierDebts={supplierDebts} />;
+      case 'saas-admin': return <SaaSAdmin />;
       default: return <Dashboard projects={sentProjects} requests={requests} onUpdateProject={handleUpdateProject} onNavigateToTab={setActiveTab} />;
     }
   };
@@ -112,6 +112,7 @@ const App: React.FC = () => {
       case 'payments': return 'Control de Cobros';
       case 'suppliers': return 'Deudas Proveedores';
       case 'accounting': return 'Contabilidad';
+      case 'saas-admin': return 'Administración SaaS';
       default: return 'Panel de Control';
     }
   };
@@ -125,7 +126,7 @@ const App: React.FC = () => {
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
             <div>
               <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">{getTitle()}</h1>
-              <p className="text-slate-400 font-medium">Gestión de documentación técnica y comercial</p>
+              <p className="text-slate-400 font-medium">Gestión SaaS Multi-empresa unificada</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 bg-white p-1.5 rounded-[1.5rem] shadow-sm border border-slate-100">

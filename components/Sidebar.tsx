@@ -1,6 +1,6 @@
 
+import { ShieldCheck, LayoutDashboard, Users, Bot, Factory, Truck, Archive, Wallet, HandCoins, TruckIcon, Calculator, Clock, Menu, X } from 'lucide-react';
 import React from 'react';
-import { LayoutDashboard, Users, Bot, Settings, Menu, X, ClipboardList, Factory, Truck, Archive, Wallet, HandCoins, TruckIcon, Calculator, Clock } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -22,6 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'accounting', label: 'Contabilidad', icon: Wallet },
     { id: 'ai', label: 'Asistente IA', icon: Bot },
     { id: 'attendance', label: 'Asistencia', icon: Clock },
+    { id: 'saas-admin', label: 'Gestor SaaS', icon: ShieldCheck },
   ];
 
   return (
@@ -41,7 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
           </h1>
         </div>
         
-        <nav className="mt-4 px-4 space-y-1">
+        <nav className="mt-4 px-4 space-y-1 overflow-y-auto max-h-[calc(100vh-8rem)]">
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
