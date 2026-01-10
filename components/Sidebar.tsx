@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, Users, Bot, Menu, X, ClipboardList, Factory, Truck, Archive, Wallet, HandCoins, Clock } from 'lucide-react';
+import { LayoutDashboard, Users, Bot, Settings, Menu, X, ClipboardList, Factory, Truck, Archive, Wallet, HandCoins, TruckIcon, Calculator, Clock } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -12,16 +12,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'requests', label: 'Pedidos / CRM', icon: Users },
-    { id: 'clients', label: 'Obras Vigentes', icon: ClipboardList },
-    { id: 'production', label: 'Fábrica / Taller', icon: Factory },
-    { id: 'installation', label: 'Instalaciones', icon: Truck },
-    { id: 'archive', label: 'Archivo Histórico', icon: Archive },
-    { id: 'payments', label: 'Cobranzas', icon: HandCoins },
-    { id: 'suppliers', label: 'Proveedores', icon: Truck },
+    { id: 'requests', label: 'Presupuestador', icon: Calculator },
+    { id: 'clients', label: 'Carpeta Clientes', icon: Users },
+    { id: 'production', label: 'Taller / Fábrica', icon: Factory },
+    { id: 'installation', label: 'Instalación', icon: Truck },
+    { id: 'archive', label: 'Historial / Archivo', icon: Archive },
+    { id: 'payments', label: 'Gestión Cobros', icon: HandCoins },
+    { id: 'suppliers', label: 'Proveedores', icon: TruckIcon },
     { id: 'accounting', label: 'Contabilidad', icon: Wallet },
     { id: 'ai', label: 'Asistente IA', icon: Bot },
-    { id: 'attendance', label: 'Personal', icon: Clock },
+    { id: 'attendance', label: 'Asistencia', icon: Clock },
   ];
 
   return (
@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
           </h1>
         </div>
         
-        <nav className="mt-4 px-4 space-y-1 overflow-y-auto max-h-[calc(100vh-8rem)] custom-scrollbar">
+        <nav className="mt-4 px-4 space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -51,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
                   setActiveTab(item.id);
                   setIsOpen(false);
                 }}
-                className={`flex items-center w-full px-5 py-3 rounded-2xl transition-all text-left ${
+                className={`flex items-center w-full px-5 py-3.5 rounded-2xl transition-all text-left ${
                   activeTab === item.id 
                     ? 'bg-blue-50 text-blue-600 font-bold shadow-sm' 
                     : 'hover:bg-slate-50 text-slate-400 hover:text-slate-600'

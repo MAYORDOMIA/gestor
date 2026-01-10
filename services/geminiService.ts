@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -13,7 +13,7 @@ Habla siempre de forma profesional y técnica en español.`;
 
 export async function askGemini(prompt: string) {
   try {
-    const response: GenerateContentResponse = await ai.models.generateContent({
+    const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
@@ -21,8 +21,6 @@ export async function askGemini(prompt: string) {
         temperature: 0.7,
       },
     });
-    
-    // Acceso directo a .text según las directrices de la SDK
     return response.text;
   } catch (error) {
     console.error("Error calling Gemini:", error);
