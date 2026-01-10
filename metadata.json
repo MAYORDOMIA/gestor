@@ -1,0 +1,7 @@
+{
+  "name": "Arista Studio 2 - Gestión de Aberturas",
+  "description": "Sistema integral de gestión de obras y presupuestos para carpintería de aluminio y vidriería, con asistencia de IA para optimización de materiales.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
