@@ -1,7 +1,16 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Verificación de seguridad para evitar que la app crashee en el despliegue si process no está definido
+const getApiKey = () => {
+  try {
+    return process.env.API_KEY || '';
+  } catch {
+    return '';
+  }
+};
+
+const ai = new GoogleGenAI({ apiKey: getApiKey() });
 
 const SYSTEM_PROMPT = `Eres un asistente experto para Arista Studio 2, una empresa de aberturas de aluminio y vidriería. 
 Tus funciones incluyen:
@@ -13,6 +22,11 @@ Habla siempre de forma profesional y técnica en español.`;
 
 export async function askGemini(prompt: string) {
   try {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      return "El asistente de IA no está configurado (falta API Key), pero puedes seguir usando el resto del sistema de gestión.";
+    }
+
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
