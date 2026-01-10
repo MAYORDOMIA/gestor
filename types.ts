@@ -25,11 +25,20 @@ export enum TransactionType {
   EGRESO = 'Egreso'
 }
 
+export type UserRole = 'super_admin' | 'admin_empresa' | 'empleado';
+
 // SaaS Multi-empresa
 export interface Organization {
   id: string;
   name: string;
   slug: string;
+}
+
+export interface Profile {
+  user_id: string;
+  organization_id?: string;
+  role: UserRole;
+  full_name: string;
 }
 
 export interface Subscription {
