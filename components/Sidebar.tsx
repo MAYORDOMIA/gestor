@@ -12,6 +12,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [sub, setSub] = useState<Subscription | null>(null);
+  const userEmail = 'pabloviex@live.com.ar'; // En producción esto vendría del contexto de auth
 
   useEffect(() => {
     const fetchSub = async () => {
@@ -33,13 +34,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'accounting', label: 'CONTABILIDAD', icon: Wallet, module: 'has_gestor' },
     { id: 'ai', label: 'ASISTENTE IA', icon: Bot, module: 'has_cotizador_vidrio' },
     { id: 'attendance', label: 'ASISTENCIA', icon: Clock, module: 'has_medidor' },
-    { id: 'saas-admin', label: 'GESTOR SAAS', icon: ShieldCheck, module: 'is_admin' },
+    { id: 'saas-admin', label: 'GESTOR SAAS', icon: ShieldCheck, module: 'is_admin', onlyAdmin: true },
   ];
 
-  const checkModule = (module: string) => {
-    if (module === 'is_admin') return true; 
+  const checkModule = (item: any) => {
+    if (item.onlyAdmin && userEmail !== 'pabloviex@live.com.ar') return false;
+    if (item.module === 'is_admin') return true; 
     if (!sub) return false;
-    return (sub as any)[module];
+    return (sub as any)[item.module];
   };
 
   return (
@@ -70,8 +72,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         {/* Navigation Menu - Remarcado */}
         <nav className="mt-6 px-4 pb-20 space-y-1.5 overflow-y-auto h-[calc(100vh-7rem)] custom-scrollbar">
           {menuItems.map((item) => {
+            if (item.onlyAdmin && userEmail !== 'pabloviex@live.com.ar') return null;
+            
             const Icon = item.icon;
-            const isAvailable = checkModule(item.module);
+            const isAvailable = checkModule(item);
             const isActive = activeTab === item.id;
             
             return (

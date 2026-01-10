@@ -13,7 +13,7 @@ import PaymentsManager from './components/PaymentsManager';
 import SuppliersManager from './components/SuppliersManager';
 import EmployeeAttendanceManager from './components/EmployeeAttendanceManager';
 import SaaSAdmin from './components/SaaSAdmin';
-import { Bell, Search, Trash2, LayoutGrid, FileText, Settings, Hammer, Monitor, Lock, RefreshCcw, ShieldAlert, Zap } from 'lucide-react';
+import { Bell, Search, Trash2, LayoutGrid, FileText, Settings, Hammer, Monitor, Lock, RefreshCcw, ShieldAlert, Zap, KeyRound } from 'lucide-react';
 import { BudgetRequest, Project, ProjectStatus, RequestStatus, SupplierDebt, Subscription } from './types';
 import { supabase } from './services/supabase';
 
@@ -38,7 +38,10 @@ const App: React.FC = () => {
   const [supplierDebts, setSupplierDebts] = useState<SupplierDebt[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isLoadingSub, setIsLoadingSub] = useState(true);
-  const [userEmail, setUserEmail] = useState<string>('pabloviex@live.com.ar'); // Simulación de usuario logueado
+  const [userEmail, setUserEmail] = useState<string>('pabloviex@live.com.ar'); 
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [adminPassInput, setAdminPassInput] = useState('');
+  const [passError, setPassError] = useState(false);
 
   useEffect(() => {
     checkSubscription();
@@ -58,6 +61,18 @@ const App: React.FC = () => {
       console.error("Error validando suscripción");
     } finally {
       setIsLoadingSub(false);
+    }
+  };
+
+  const handleAdminAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Contraseña de acceso maestro definida por el usuario
+    if (adminPassInput === 'arista2025') {
+      setIsAdminAuthenticated(true);
+      setPassError(false);
+    } else {
+      setPassError(true);
+      setTimeout(() => setPassError(false), 2000);
     }
   };
 
@@ -137,7 +152,41 @@ const App: React.FC = () => {
       case 'payments': return <PaymentsManager projects={sentProjects} onUpdateProject={handleUpdateProject} />;
       case 'suppliers': return <SuppliersManager supplierDebts={supplierDebts} onAddDebt={d => setSupplierDebts([d, ...supplierDebts])} onUpdateDebt={(id, u) => setSupplierDebts(prev => prev.map(d => d.id === id ? {...d, ...u} : d))} onDeleteDebt={id => setSupplierDebts(prev => prev.filter(d => d.id !== id))} />;
       case 'accounting': return <AccountingManager projects={sentProjects} supplierDebts={supplierDebts} />;
-      case 'saas-admin': return <SaaSAdmin />;
+      case 'saas-admin': 
+        if (!isAdminAuthenticated) {
+          return (
+            <div className="flex flex-col items-center justify-center py-20 animate-fadeIn">
+              <div className="bg-white p-12 lg:p-16 rounded-[4rem] border-2 border-slate-100 shadow-2xl text-center max-w-lg w-full">
+                <div className="w-20 h-20 bg-slate-900 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-xl">
+                  <ShieldAlert size={40} />
+                </div>
+                <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tighter">Acceso Restringido</h2>
+                <p className="text-slate-400 font-medium mb-8 text-sm">Debes ingresar la contraseña maestra para gestionar licencias.</p>
+                
+                <form onSubmit={handleAdminAuth} className="space-y-4">
+                  <div className="relative">
+                    <input 
+                      autoFocus
+                      type="password"
+                      placeholder="Contraseña Maestra"
+                      className={`w-full px-8 py-5 bg-slate-50 border-2 rounded-[1.5rem] outline-none font-bold transition-all text-center tracking-[0.3em] ${passError ? 'border-rose-500 bg-rose-50 text-rose-600 animate-shake' : 'border-slate-100 focus:border-blue-500 focus:bg-white'}`}
+                      value={adminPassInput}
+                      onChange={(e) => setAdminPassInput(e.target.value)}
+                    />
+                    <KeyRound className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+                  </div>
+                  <button 
+                    type="submit"
+                    className="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl"
+                  >
+                    Validar Acceso
+                  </button>
+                </form>
+              </div>
+            </div>
+          );
+        }
+        return <SaaSAdmin />;
       default: return <Dashboard projects={sentProjects} requests={requests} onUpdateProject={handleUpdateProject} />;
     }
   };
@@ -159,7 +208,6 @@ const App: React.FC = () => {
   if (!isOrgActive && userEmail !== 'pabloviex@live.com.ar') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0F172A] p-6 relative overflow-hidden">
-        {/* Decoración de fondo */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2"></div>
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2"></div>
 
