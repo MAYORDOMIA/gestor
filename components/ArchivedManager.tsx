@@ -17,7 +17,7 @@ const ArchivedManager: React.FC<ArchivedManagerProps> = ({ projects }) => {
 
   const finalizedProjects = projects.filter(p => 
     p.status === ProjectStatus.FINALIZADO && 
-    (p.requestData?.clientName.toLowerCase().includes(searchTerm.toLowerCase()) || p.clientCode?.toLowerCase().includes(searchTerm.toLowerCase()))
+    (p.requestData?.client_name.toLowerCase().includes(searchTerm.toLowerCase()) || p.client_code?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -44,12 +44,12 @@ const ArchivedManager: React.FC<ArchivedManagerProps> = ({ projects }) => {
           <div key={project.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:border-emerald-400 transition-all group">
             <div className="p-6 border-b border-slate-50">
               <div className="flex justify-between items-start mb-4">
-                <span className="text-[10px] font-black text-white bg-emerald-600 px-2 py-1 rounded-lg uppercase tracking-widest">{project.clientCode}</span>
+                <span className="text-[10px] font-black text-white bg-emerald-600 px-2 py-1 rounded-lg uppercase tracking-widest">{project.client_code}</span>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
                    <Archive size={10} /> Finalizado
                 </span>
               </div>
-              <h3 className="text-lg font-bold text-slate-900 truncate">{project.requestData?.clientName}</h3>
+              <h3 className="text-lg font-bold text-slate-900 truncate">{project.requestData?.client_name}</h3>
               <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
                 <MapPin size={12} /> {project.requestData?.address}
               </p>
@@ -58,11 +58,11 @@ const ArchivedManager: React.FC<ArchivedManagerProps> = ({ projects }) => {
             <div className="px-6 py-4 flex-1 space-y-3 bg-slate-50/30">
               <div className="flex justify-between text-xs">
                 <span className="text-slate-400 font-medium">Línea/Color:</span>
-                <span className="text-slate-700 font-bold">{project.manufacturingData?.line} - {project.manufacturingData?.color}</span>
+                <span className="text-slate-700 font-bold">{project.manufacturing_data?.line} - {project.manufacturing_data?.color}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-slate-400 font-medium">Instalado por:</span>
-                <span className="text-slate-700 font-bold">{project.installationData?.teamName}</span>
+                <span className="text-slate-700 font-bold">{project.installation_data?.teamName}</span>
               </div>
             </div>
 
@@ -95,8 +95,8 @@ const ArchivedManager: React.FC<ArchivedManagerProps> = ({ projects }) => {
                   <Archive size={32} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black tracking-tight">{selectedProject.clientCode}</h3>
-                  <p className="text-sm text-emerald-100 font-medium">{selectedProject.requestData?.clientName}</p>
+                  <h3 className="text-2xl font-black tracking-tight">{selectedProject.client_code}</h3>
+                  <p className="text-sm text-emerald-100 font-medium">{selectedProject.requestData?.client_name}</p>
                 </div>
               </div>
               <button onClick={() => setSelectedProject(null)} className="p-3 hover:bg-white/10 rounded-full transition-colors">
@@ -143,17 +143,17 @@ const ArchivedManager: React.FC<ArchivedManagerProps> = ({ projects }) => {
                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Línea</label>
-                        <p className="text-xs font-bold text-slate-800">{selectedProject.manufacturingData?.line}</p>
+                        <p className="text-xs font-bold text-slate-800">{selectedProject.manufacturing_data?.line}</p>
                       </div>
                       <div>
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Color</label>
-                        <p className="text-xs font-bold text-slate-800">{selectedProject.manufacturingData?.color}</p>
+                        <p className="text-xs font-bold text-slate-800">{selectedProject.manufacturing_data?.color}</p>
                       </div>
                    </div>
                    <div>
                     <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Tareas Cumplidas</label>
                     <div className="space-y-1.5">
-                      {(selectedProject.manufacturingData?.tasks || []).map(task => (
+                      {(selectedProject.manufacturing_data?.tasks || []).map(task => (
                         <div key={task.id} className="flex items-center gap-2 text-[11px] font-medium text-slate-600">
                           <CheckCircle size={12} className="text-emerald-500" />
                           {task.label}
@@ -164,7 +164,7 @@ const ArchivedManager: React.FC<ArchivedManagerProps> = ({ projects }) => {
                   <div>
                     <label className="text-[10px] font-bold text-slate-400 uppercase">Logs de Taller</label>
                     <div className="mt-2 space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                      {(selectedProject.manufacturingData?.workshopLogs || []).map(log => (
+                      {(selectedProject.manufacturing_data?.workshopLogs || []).map(log => (
                         <div key={log.id} className="text-[10px] bg-white p-2 rounded-lg border border-slate-100">
                           <span className="font-bold text-emerald-700 block mb-1">{log.date}</span>
                           {log.text}
@@ -184,16 +184,16 @@ const ArchivedManager: React.FC<ArchivedManagerProps> = ({ projects }) => {
                 <div className="bg-slate-50 p-6 rounded-3xl space-y-4">
                   <div>
                     <label className="text-[10px] font-bold text-slate-400 uppercase">Equipo de Colocación</label>
-                    <p className="text-sm font-bold text-slate-800">{selectedProject.installationData?.teamName}</p>
+                    <p className="text-sm font-bold text-slate-800">{selectedProject.installation_data?.teamName}</p>
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-slate-400 uppercase">Fecha de Cierre</label>
-                    <p className="text-sm font-bold text-slate-800">{selectedProject.installationData?.scheduledDate}</p>
+                    <p className="text-sm font-bold text-slate-800">{selectedProject.installation_data?.scheduledDate}</p>
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-slate-400 uppercase">Notas de Obra</label>
                     <p className="text-xs text-slate-600 italic mt-1 leading-relaxed bg-white p-4 rounded-2xl border border-slate-100">
-                      "{selectedProject.installationData?.notes || 'Sin notas especiales.'}"
+                      "{selectedProject.installation_data?.notes || 'Sin notas especiales.'}"
                     </p>
                   </div>
                 </div>

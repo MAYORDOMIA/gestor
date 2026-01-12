@@ -3,17 +3,19 @@ import React, { useState } from 'react';
 import { Wallet, TrendingUp, TrendingDown, DollarSign, Plus, Search, Filter, Download, ArrowUpRight, ArrowDownLeft, Calendar, HandCoins, Truck } from 'lucide-react';
 import { Transaction, TransactionType, Project, SupplierDebt } from '../types';
 
+// Define the missing props interface for AccountingManager
 interface AccountingManagerProps {
   projects: Project[];
   supplierDebts: SupplierDebt[];
 }
 
 const INITIAL_TRANSACTIONS: Transaction[] = [
-  { id: 't1', date: '2024-05-15', description: 'Pago Inicial Obra Delta', category: 'Venta', amount: 250000, type: TransactionType.INGRESO },
-  { id: 't2', date: '2024-05-16', description: 'Compra Perfiles Aluar A30', category: 'Materiales', amount: 180000, type: TransactionType.EGRESO },
-  { id: 't3', date: '2024-05-17', description: 'Servicio de Vidriería VASA', category: 'Materiales', amount: 45000, type: TransactionType.EGRESO },
-  { id: 't4', date: '2024-05-18', description: 'Pago Final Residencia Gomez', category: 'Venta', amount: 500000, type: TransactionType.INGRESO },
-  { id: 't5', date: '2024-05-19', description: 'Sueldos Taller - Quincena', category: 'Mano de Obra', amount: 120000, type: TransactionType.EGRESO },
+  // Fix: Added organization_id to mock transactions
+  { id: 't1', organization_id: 'org_1', date: '2024-05-15', description: 'Pago Inicial Obra Delta', category: 'Venta', amount: 250000, type: TransactionType.INGRESO },
+  { id: 't2', organization_id: 'org_1', date: '2024-05-16', description: 'Compra Perfiles Aluar A30', category: 'Materiales', amount: 180000, type: TransactionType.EGRESO },
+  { id: 't3', organization_id: 'org_1', date: '2024-05-17', description: 'Servicio de Vidriería VASA', category: 'Materiales', amount: 45000, type: TransactionType.EGRESO },
+  { id: 't4', organization_id: 'org_1', date: '2024-05-18', description: 'Pago Final Residencia Gomez', category: 'Venta', amount: 500000, type: TransactionType.INGRESO },
+  { id: 't5', organization_id: 'org_1', date: '2024-05-19', description: 'Sueldos Taller - Quincena', category: 'Mano de Obra', amount: 120000, type: TransactionType.EGRESO },
 ];
 
 const AccountingManager: React.FC<AccountingManagerProps> = ({ projects, supplierDebts }) => {
@@ -28,18 +30,18 @@ const AccountingManager: React.FC<AccountingManagerProps> = ({ projects, supplie
 
   const projectIncomes = projects.reduce((acc, p) => {
     const total = p.total || 0;
-    const discountPercent = p.paymentData?.discountPercent || 0;
+    const discountPercent = p.payment_data?.discountPercent || 0;
     const discountedTotal = total * (1 - (discountPercent / 100));
-    const downPayment = p.paymentData?.downPayment || 0;
-    const finalPayment = p.paymentData?.isFinalPaid ? Math.max(0, discountedTotal - downPayment) : 0;
+    const downPayment = p.payment_data?.downPayment || 0;
+    const finalPayment = p.payment_data?.isFinalPaid ? Math.max(0, discountedTotal - downPayment) : 0;
     return acc + downPayment + finalPayment;
   }, 0);
 
   // Calcular egresos por pagos a proveedores
-  const supplierExpenses = supplierDebts.reduce((acc, d) => acc + d.paidAmount, 0);
+  const supplierExpenses = supplierDebts.reduce((acc, d) => acc + d.paid_amount, 0);
   
   // Calcular deuda total pendiente con proveedores (Informativo)
-  const outstandingDebt = supplierDebts.reduce((acc, d) => acc + (d.totalAmount - d.paidAmount), 0);
+  const outstandingDebt = supplierDebts.reduce((acc, d) => acc + (d.total_amount - d.paid_amount), 0);
 
   const manualIncomes = transactions
     .filter(t => t.type === TransactionType.INGRESO)
@@ -64,6 +66,8 @@ const AccountingManager: React.FC<AccountingManagerProps> = ({ projects, supplie
     e.preventDefault();
     const transaction: Transaction = {
       id: `t_${Date.now()}`,
+      // Fix: Added organization_id
+      organization_id: 'org_1',
       date: newTransaction.date || '',
       description: newTransaction.description || '',
       category: newTransaction.category || '',

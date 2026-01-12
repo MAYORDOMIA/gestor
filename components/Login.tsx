@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { supabase } from '../services/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { Lock, Mail, Loader2, ArrowRight } from 'lucide-react';
 
 interface LoginProps {
@@ -8,8 +8,9 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { login } = useAuth();
+  const [email, setEmail] = useState('pabloviex@live.com.ar');
+  const [password, setPassword] = useState('admin654123');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -18,89 +19,77 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setLoading(true);
     setError('');
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setError('Credenciales incorrectas. Inténtalo de nuevo.');
-      setLoading(false);
-    } else {
+    try {
+      await login(email, password);
+      // AuthProvider se encargará de detectar el cambio y redirigir a AppContent
       onLoginSuccess();
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(`Error: ${err.message || 'Credenciales inválidas'}`);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Elementos decorativos de fondo */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2"></div>
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 overflow-hidden relative">
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2"></div>
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2"></div>
 
       <div className="w-full max-w-md relative z-10">
-        <div className="text-center mb-10">
-          <div className="bg-blue-600 text-white w-16 h-16 rounded-[1.5rem] flex items-center justify-center font-black text-2xl mx-auto shadow-xl shadow-blue-500/20 mb-6">A</div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">
-            ARISTA <span className="text-blue-500">ESTUDIO</span>
-          </h1>
-          <p className="text-slate-400 font-medium mt-2 uppercase tracking-widest text-[10px]">Gestión de Aberturas & Vidrios</p>
+        <div className="text-center mb-12">
+          <div className="bg-blue-600 text-white w-20 h-20 rounded-[2.5rem] flex items-center justify-center font-black text-4xl mx-auto mb-6 shadow-2xl shadow-blue-500/40">A</div>
+          <h1 className="text-3xl font-black text-white tracking-tighter uppercase">ARISTA STUDIO</h1>
+          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-3">Módulo de Administración Central</p>
         </div>
 
-        <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-[0_20px_60px_rgb(0,0,0,0.04)]">
-          <h2 className="text-xl font-bold text-slate-900 mb-8 text-center">Bienvenido de nuevo</h2>
-          
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Email Corporativo</label>
+        <div className="bg-slate-800/50 backdrop-blur-xl p-10 lg:p-12 rounded-[3.5rem] border border-white/5 shadow-2xl">
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Email de Acceso</label>
               <div className="relative">
-                <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                 <input 
-                  required
+                  required 
                   type="email" 
-                  className="w-full pl-14 pr-8 py-5 bg-slate-50 border border-slate-100 rounded-full text-sm font-medium outline-none focus:bg-white focus:border-blue-400 focus:ring-4 ring-blue-500/5 transition-all"
-                  placeholder="nombre@empresa.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-16 pr-8 py-5 bg-slate-900/50 border border-white/5 rounded-full text-sm font-bold text-white focus:border-blue-500 outline-none transition-all" 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
                 />
               </div>
             </div>
-
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Contraseña</label>
               <div className="relative">
-                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                 <input 
-                  required
+                  required 
                   type="password" 
-                  className="w-full pl-14 pr-8 py-5 bg-slate-50 border border-slate-100 rounded-full text-sm font-medium outline-none focus:bg-white focus:border-blue-400 focus:ring-4 ring-blue-500/5 transition-all"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-16 pr-8 py-5 bg-slate-900/50 border border-white/5 rounded-full text-sm font-bold text-white focus:border-blue-500 outline-none transition-all" 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
                 />
               </div>
             </div>
 
-            {error && <p className="text-center text-xs font-bold text-red-500 bg-red-50 p-4 rounded-2xl border border-red-100">{error}</p>}
+            {error && (
+              <div className="p-4 bg-rose-500/10 text-rose-500 text-[10px] font-black uppercase rounded-2xl text-center border border-rose-500/20">
+                {error}
+              </div>
+            )}
 
             <button 
-              type="submit"
-              disabled={loading}
-              className="w-full py-5 bg-blue-600 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              disabled={loading} 
+              type="submit" 
+              className="w-full py-6 bg-blue-600 text-white rounded-full font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-blue-600/20 hover:bg-blue-500 transition-all active:scale-95 disabled:opacity-50"
             >
-              {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                <>
-                  Iniciar Sesión <ArrowRight size={16} />
-                </>
-              )}
+              {loading ? <Loader2 className="animate-spin" /> : <>Entrar al Sistema <ArrowRight size={16}/></>}
             </button>
           </form>
-
-          <div className="mt-8 text-center">
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">¿No tienes acceso? Contacta a Pablo Viéx</p>
-          </div>
         </div>
-
-        <p className="text-center text-slate-300 text-[9px] font-bold uppercase tracking-widest mt-12">ARISTA STUDIO 2 • SISTEMA DE GESTIÓN AVANZADO</p>
+        
+        <p className="text-center mt-8 text-[9px] text-slate-600 font-bold uppercase tracking-widest">
+          Desarrollado por Arista Estudio • © 2024
+        </p>
       </div>
     </div>
   );

@@ -18,7 +18,7 @@ const InstallationManager: React.FC<InstallationManagerProps> = ({ projects, onU
 
   const filteredProjects = projects.filter(p => 
     p.status === ProjectStatus.INSTALACION && 
-    (p.requestData?.clientName.toLowerCase().includes(searchTerm.toLowerCase()) || p.clientCode?.toLowerCase().includes(searchTerm.toLowerCase()))
+    (p.requestData?.client_name.toLowerCase().includes(searchTerm.toLowerCase()) || p.client_code?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const handleToggleComplete = (project: Project) => {
@@ -28,11 +28,11 @@ const InstallationManager: React.FC<InstallationManagerProps> = ({ projects, onU
   const handleUpdateInstallationData = (field: string, value: any) => {
     if (!editingProject) return;
     const updatedData = {
-      ...editingProject.installationData,
+      ...editingProject.installation_data,
       [field]: value
     };
-    onUpdateProject(editingProject.id, { installationData: updatedData });
-    setEditingProject({ ...editingProject, installationData: updatedData });
+    onUpdateProject(editingProject.id, { installation_data: updatedData });
+    setEditingProject({ ...editingProject, installation_data: updatedData });
   };
 
   return (
@@ -60,10 +60,10 @@ const InstallationManager: React.FC<InstallationManagerProps> = ({ projects, onU
             <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex justify-between items-start">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[10px] font-black text-white bg-slate-900 px-2 py-1 rounded-lg uppercase tracking-widest">{project.clientCode}</span>
+                  <span className="text-[10px] font-black text-white bg-slate-900 px-2 py-1 rounded-lg uppercase tracking-widest">{project.client_code}</span>
                   <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg uppercase tracking-widest">En Obra</span>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900">{project.requestData?.clientName}</h3>
+                <h3 className="text-xl font-bold text-slate-900">{project.requestData?.client_name}</h3>
                 <p className="text-sm text-slate-500 flex items-center gap-1.5 mt-1">
                   <MapPin size={14} className="text-slate-400" />
                   {project.requestData?.address}
@@ -73,7 +73,7 @@ const InstallationManager: React.FC<InstallationManagerProps> = ({ projects, onU
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Equipo Asignado</p>
                 <div className="flex items-center gap-2 justify-end text-blue-600">
                   <User size={14} />
-                  <span className="text-sm font-bold">{project.installationData?.teamName || 'S/D'}</span>
+                  <span className="text-sm font-bold">{project.installation_data?.teamName || 'S/D'}</span>
                 </div>
               </div>
             </div>
@@ -85,7 +85,7 @@ const InstallationManager: React.FC<InstallationManagerProps> = ({ projects, onU
                     <Calendar size={14} className="text-slate-400" />
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Programada</span>
                   </div>
-                  <p className="text-sm font-bold text-slate-800">{project.installationData?.scheduledDate || 'No definida'}</p>
+                  <p className="text-sm font-bold text-slate-800">{project.installation_data?.scheduledDate || 'No definida'}</p>
                 </div>
                 <div className="bg-white p-4 rounded-2xl border border-slate-200">
                   <div className="flex items-center gap-2 mb-2">
@@ -93,7 +93,7 @@ const InstallationManager: React.FC<InstallationManagerProps> = ({ projects, onU
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Notas de Colocación</span>
                   </div>
                   <p className="text-xs text-slate-600 italic leading-relaxed">
-                    {project.installationData?.notes || 'Sin notas registradas aún.'}
+                    {project.installation_data?.notes || 'Sin notas registradas aún.'}
                   </p>
                 </div>
               </div>
@@ -149,7 +149,7 @@ const InstallationManager: React.FC<InstallationManagerProps> = ({ projects, onU
                 <input 
                   type="text"
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:ring-2 ring-blue-500/20"
-                  value={editingProject.installationData?.teamName || ''}
+                  value={editingProject.installation_data?.teamName || ''}
                   onChange={(e) => handleUpdateInstallationData('teamName', e.target.value)}
                 />
               </div>
@@ -158,7 +158,7 @@ const InstallationManager: React.FC<InstallationManagerProps> = ({ projects, onU
                 <input 
                   type="date"
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:ring-2 ring-blue-500/20"
-                  value={editingProject.installationData?.scheduledDate || ''}
+                  value={editingProject.installation_data?.scheduledDate || ''}
                   onChange={(e) => handleUpdateInstallationData('scheduledDate', e.target.value)}
                 />
               </div>
@@ -167,7 +167,7 @@ const InstallationManager: React.FC<InstallationManagerProps> = ({ projects, onU
                 <textarea 
                   rows={4}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-2 ring-blue-500/20 resize-none"
-                  value={editingProject.installationData?.notes || ''}
+                  value={editingProject.installation_data?.notes || ''}
                   onChange={(e) => handleUpdateInstallationData('notes', e.target.value)}
                 />
               </div>

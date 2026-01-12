@@ -13,16 +13,16 @@ const PaymentsManager: React.FC<PaymentsManagerProps> = ({ projects, onUpdatePro
   const [editingTotalId, setEditingTotalId] = useState<string | null>(null);
 
   const filteredProjects = projects.filter(p => 
-    p.requestData?.clientName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.clientCode?.toLowerCase().includes(searchTerm.toLowerCase())
+    p.requestData?.client_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    p.client_code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleUpdatePayment = (id: string, downPayment: number) => {
     const project = projects.find(p => p.id === id);
     if (project) {
       onUpdateProject(id, {
-        paymentData: {
-          ...(project.paymentData || { downPayment: 0, isFinalPaid: false }),
+        payment_data: {
+          ...(project.payment_data || { downPayment: 0, isFinalPaid: false }),
           downPayment: downPayment,
           downPaymentDate: new Date().toISOString().split('T')[0]
         }
@@ -34,8 +34,8 @@ const PaymentsManager: React.FC<PaymentsManagerProps> = ({ projects, onUpdatePro
     const project = projects.find(p => p.id === id);
     if (project) {
       onUpdateProject(id, {
-        paymentData: {
-          ...(project.paymentData || { downPayment: 0, isFinalPaid: false }),
+        payment_data: {
+          ...(project.payment_data || { downPayment: 0, isFinalPaid: false }),
           discountPercent: discount
         }
       });
@@ -49,10 +49,10 @@ const PaymentsManager: React.FC<PaymentsManagerProps> = ({ projects, onUpdatePro
   const handleToggleFinalPayment = (id: string) => {
     const project = projects.find(p => p.id === id);
     if (project) {
-      const isPaid = !project.paymentData?.isFinalPaid;
+      const isPaid = !project.payment_data?.isFinalPaid;
       onUpdateProject(id, {
-        paymentData: {
-          ...(project.paymentData || { downPayment: 0, isFinalPaid: false }),
+        payment_data: {
+          ...(project.payment_data || { downPayment: 0, isFinalPaid: false }),
           isFinalPaid: isPaid,
           finalPaymentDate: isPaid ? new Date().toISOString().split('T')[0] : undefined
         }
@@ -82,10 +82,10 @@ const PaymentsManager: React.FC<PaymentsManagerProps> = ({ projects, onUpdatePro
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {filteredProjects.map((project) => {
           const total = project.total || 0;
-          const discountPercent = project.paymentData?.discountPercent || 0;
+          const discountPercent = project.payment_data?.discountPercent || 0;
           const discountedTotal = total * (1 - (discountPercent / 100));
-          const downPayment = project.paymentData?.downPayment || 0;
-          const isFinalPaid = project.paymentData?.isFinalPaid || false;
+          const downPayment = project.payment_data?.downPayment || 0;
+          const isFinalPaid = project.payment_data?.isFinalPaid || false;
           const balance = Math.max(0, discountedTotal - downPayment);
 
           return (
@@ -97,10 +97,10 @@ const PaymentsManager: React.FC<PaymentsManagerProps> = ({ projects, onUpdatePro
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase">{project.clientCode}</span>
+                      <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase">{project.client_code}</span>
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{project.status}</span>
                     </div>
-                    <h3 className="text-lg font-bold text-slate-900">{project.requestData?.clientName}</h3>
+                    <h3 className="text-lg font-bold text-slate-900">{project.requestData?.client_name}</h3>
                     <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
                       <MapPin size={12} /> {project.requestData?.address}
                     </p>
@@ -192,7 +192,7 @@ const PaymentsManager: React.FC<PaymentsManagerProps> = ({ projects, onUpdatePro
                   </div>
                   {isFinalPaid && (
                     <p className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 animate-in fade-in slide-in-from-left-2">
-                      <CheckCircle2 size={12} /> Saldo liquidado el {project.paymentData?.finalPaymentDate}
+                      <CheckCircle2 size={12} /> Saldo liquidado el {project.payment_data?.finalPaymentDate}
                     </p>
                   )}
                 </div>

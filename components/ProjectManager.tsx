@@ -4,9 +4,10 @@ import { Project, ProjectStatus } from '../types';
 import { Plus, Search, MoreHorizontal, MapPin, User, Calendar } from 'lucide-react';
 
 const MOCK_PROJECTS: Project[] = [
-  { id: '1', title: 'Edificio Las Palmeras - Piso 4', clientId: 'c1', status: ProjectStatus.PRODUCCION, items: [], createdAt: '2024-05-10', total: 450000 },
-  { id: '2', title: 'Residencia Gomez - Carpintería A30', clientId: 'c2', status: ProjectStatus.PRESUPUESTO, items: [], createdAt: '2024-05-15', total: 1200000 },
-  { id: '3', title: 'Showroom Automotriz', clientId: 'c3', status: ProjectStatus.INSTALACION, items: [], createdAt: '2024-04-20', total: 890000 },
+  // Fix: Removed invalid property clientId and used created_at
+  { id: '1', organization_id: 'org_1', title: 'Edificio Las Palmeras - Piso 4', status: ProjectStatus.PRODUCCION, created_at: '2024-05-10', total: 450000 },
+  { id: '2', organization_id: 'org_1', title: 'Residencia Gomez - Carpintería A30', status: ProjectStatus.PRESUPUESTO, created_at: '2024-05-15', total: 1200000 },
+  { id: '3', organization_id: 'org_1', title: 'Showroom Automotriz', status: ProjectStatus.INSTALACION, created_at: '2024-04-20', total: 890000 },
 ];
 
 const ProjectManager: React.FC = () => {
@@ -70,7 +71,8 @@ const ProjectManager: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-slate-500">
                   <Calendar size={16} />
-                  <span>Iniciado: {project.createdAt}</span>
+                  {/* Fix: Use created_at instead of createdAt */}
+                  <span>Iniciado: {project.created_at}</span>
                 </div>
               </div>
             </div>

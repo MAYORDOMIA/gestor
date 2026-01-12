@@ -1,10 +1,12 @@
 
 import React, { useState, useRef } from 'react';
+import { supabase } from '../services/supabase';
 import { Project, ProjectStatus, ManufacturingTask } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   Phone, Mail, FileText, ExternalLink, Calendar, User, 
   Download, Search, Hash, Tag, Factory, X, Palette, 
-  Layers, Info, Upload, Check, Clock
+  Layers, Info, Upload, Check, Clock, UserPlus, ShieldCheck, Loader2
 } from 'lucide-react';
 
 interface ClientProjectManagerProps {
@@ -13,8 +15,15 @@ interface ClientProjectManagerProps {
 }
 
 const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, onUpdateProject }) => {
+  const { isGodMode } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [setupProject, setSetupProject] = useState<Project | null>(null);
+  const [userModalProject, setUserModalProject] = useState<Project | null>(null);
+  const [newUser, setNewUser] = useState({ email: '', password: '' });
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [userError, setUserError] = useState('');
+  const [userSuccess, setUserSuccess] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeUploadType, setActiveUploadType] = useState<'materials' | 'optimization' | null>(null);
 
@@ -22,13 +31,70 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
     const searchLower = searchTerm.toLowerCase();
     return (
       project.status === ProjectStatus.PRESUPUESTO && (
-        project.requestData?.clientName.toLowerCase().includes(searchLower) ||
+        project.requestData?.client_name.toLowerCase().includes(searchLower) ||
         project.requestData?.email.toLowerCase().includes(searchLower) ||
-        project.clientCode?.toLowerCase().includes(searchLower) ||
+        project.client_code?.toLowerCase().includes(searchLower) ||
         project.requestData?.phone.includes(searchTerm)
       )
     );
   });
+
+  const handleCreateAccess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userModalProject || !isGodMode) return;
+    
+    setIsCreatingUser(true);
+    setUserError('');
+    setUserSuccess(false);
+
+    try {
+      const cleanEmail = newUser.email.toLowerCase().trim();
+      console.log("ACCESO CLIENTE: Iniciando registro para:", cleanEmail);
+
+      // A. Auth Primero
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: newUser.password,
+      });
+
+      // B. Validación
+      if (authError) {
+        console.error("ERROR TÉCNICO AUTH (CLIENTE):", authError.message, authError);
+        throw new Error(authError.message);
+      }
+
+      const userId = authData.user?.id;
+      if (!userId) throw new Error("ID de usuario no disponible tras el registro Auth.");
+
+      // C. Inserción Perfil Manual
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          email: cleanEmail,
+          role: 'admin',
+          organization_id: userModalProject.organization_id
+        });
+
+      if (profileError) {
+        console.error("ERROR TÉCNICO DATABASE (CLIENTE PROFILES):", profileError.message);
+        throw new Error(`Fallo en base de datos: ${profileError.message}`);
+      }
+
+      setUserSuccess(true);
+      setNewUser({ email: '', password: '' });
+      setTimeout(() => {
+        setUserModalProject(null);
+        setUserSuccess(false);
+      }, 2500);
+      
+    } catch (err: any) {
+      console.error("FALLO EN ACCESO CLIENTE:", err);
+      setUserError(err.message || "Error al guardar el nuevo usuario.");
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
 
   const handleOpenSetup = (project: Project) => {
     const defaultTasks: ManufacturingTask[] = [
@@ -40,7 +106,7 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
 
     setSetupProject({
       ...project,
-      manufacturingData: {
+      manufacturing_data: {
         color: '',
         line: '',
         details: '',
@@ -57,8 +123,8 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
       if (!prev) return null;
       return {
         ...prev,
-        manufacturingData: {
-          ...prev.manufacturingData,
+        manufacturing_data: {
+          ...prev.manufacturing_data,
           [field]: value
         }
       };
@@ -68,7 +134,7 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
   const handleFileClick = (type: 'materials' | 'optimization') => {
     setActiveUploadType(type);
     if (fileInputRef.current) {
-      fileInputRef.current.value = ''; // Reset value to allow re-upload of same file
+      fileInputRef.current.value = '';
       fileInputRef.current.click();
     }
   };
@@ -77,7 +143,6 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
     if (e.target.files && e.target.files[0] && setupProject && activeUploadType) {
       const file = e.target.files[0];
       const url = URL.createObjectURL(file);
-      
       const updates = activeUploadType === 'materials' 
         ? { materialsPdfUrl: url, materialsPdfName: file.name }
         : { optimizationPdfUrl: url, optimizationPdfName: file.name };
@@ -86,13 +151,12 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
         if (!prev) return null;
         return {
           ...prev,
-          manufacturingData: {
-            ...prev.manufacturingData,
+          manufacturing_data: {
+            ...prev.manufacturing_data,
             ...updates
           }
         };
       });
-      
       setActiveUploadType(null);
     }
   };
@@ -101,7 +165,7 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
     if (setupProject && onUpdateProject) {
       onUpdateProject(setupProject.id, { 
         status: ProjectStatus.PRODUCCION,
-        manufacturingData: setupProject.manufacturingData
+        manufacturing_data: setupProject.manufacturing_data
       });
       setSetupProject(null);
     }
@@ -111,7 +175,7 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Clientes</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Carpeta Clientes</h2>
           <p className="text-slate-500 text-sm">Presupuestos enviados pendientes de aprobación o inicio de obra.</p>
         </div>
         
@@ -130,7 +194,7 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
       <div className="grid grid-cols-1 gap-6">
         {filteredProjects.length > 0 ? (
           filteredProjects.map((project) => (
-            <div key={project.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row hover:border-blue-300 transition-colors">
+            <div key={project.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row hover:border-blue-300 transition-colors">
               <div className="p-6 md:w-2/3 border-b md:border-b-0 md:border-r border-slate-100">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-2">
@@ -139,7 +203,7 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-slate-900 leading-none mb-1">
-                        {project.requestData?.clientName || 'Cliente'}
+                        {project.requestData?.client_name || 'Cliente'}
                       </h3>
                       <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
                         <Tag size={12} />
@@ -147,7 +211,17 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
                       </div>
                     </div>
                   </div>
-                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 uppercase tracking-wider">Presupuesto Enviado</span>
+                  <div className="flex gap-2">
+                    {isGodMode && (
+                      <button 
+                        onClick={() => setUserModalProject(project)}
+                        className="text-[10px] font-black text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-full border border-blue-100 uppercase tracking-wider flex items-center gap-1.5 transition-all"
+                      >
+                        <UserPlus size={12} /> Crear Acceso
+                      </button>
+                    )}
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 uppercase tracking-wider">Enviado</span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -162,7 +236,8 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-600">
                       <Calendar size={14} className="text-slate-400" />
-                      <span>{project.createdAt}</span>
+                      {/* Use snake_case created_at property */}
+                      <span>{project.created_at}</span>
                     </div>
                   </div>
 
@@ -172,7 +247,8 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
                       Código de Obra
                     </label>
                     <div className="text-blue-900 font-black text-lg tracking-tight">
-                      {project.clientCode || 'SIN CÓDIGO'}
+                      {/* Use snake_case client_code property */}
+                      {project.client_code || 'SIN CÓDIGO'}
                     </div>
                   </div>
                 </div>
@@ -218,7 +294,71 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
         )}
       </div>
 
-      {/* Modal Configuración Fabricación */}
+      {userModalProject && isGodMode && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl p-10 animate-in zoom-in-95 duration-200 border border-slate-200">
+            <div className="text-center mb-8">
+              <div className="bg-blue-600 text-white w-16 h-16 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4 shadow-xl shadow-blue-500/20">
+                <UserPlus size={32} />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 tracking-tight uppercase">Alta de Usuario</h3>
+              <p className="text-slate-500 text-xs font-bold mt-1 uppercase tracking-widest">Empresa: {userModalProject.requestData?.client_name}</p>
+            </div>
+
+            {userSuccess ? (
+              <div className="text-center py-8 space-y-4 animate-in fade-in zoom-in duration-500">
+                <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto border-2 border-emerald-100">
+                  <ShieldCheck size={40} />
+                </div>
+                <p className="text-sm font-black text-emerald-700 uppercase tracking-widest">Acceso creado correctamente</p>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateAccess} className="space-y-6">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Email del Administrador</label>
+                  <input 
+                    required 
+                    type="email" 
+                    placeholder="ej: admin@empresa.com"
+                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:bg-white focus:border-blue-600 outline-none transition-all"
+                    value={newUser.email}
+                    onChange={e => setNewUser({...newUser, email: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Contraseña Inicial</label>
+                  <input 
+                    required 
+                    type="password" 
+                    placeholder="••••••••"
+                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:bg-white focus:border-blue-600 outline-none transition-all"
+                    value={newUser.password}
+                    onChange={e => setNewUser({...newUser, password: e.target.value})}
+                  />
+                </div>
+
+                {userError && (
+                  <div className="p-4 bg-rose-50 text-rose-600 text-[10px] font-black uppercase rounded-2xl text-center border border-rose-100">
+                    {userError}
+                  </div>
+                )}
+
+                <div className="flex gap-4 pt-4">
+                  <button type="button" onClick={() => setUserModalProject(null)} className="flex-1 py-4 bg-slate-100 text-slate-600 font-black rounded-full text-[10px] uppercase tracking-widest transition-all hover:bg-slate-200">Cancelar</button>
+                  <button 
+                    type="submit" 
+                    disabled={isCreatingUser}
+                    className="flex-[2] py-4 bg-blue-600 text-white font-black rounded-full shadow-lg text-[10px] uppercase tracking-widest transition-all hover:bg-blue-700 flex items-center justify-center gap-2"
+                  >
+                    {isCreatingUser ? <Loader2 className="animate-spin" size={16} /> : "Generar Acceso"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
       {setupProject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
           <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-200">
@@ -229,7 +369,7 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
                 </div>
                 <div>
                   <h3 className="text-xl font-bold">Iniciar Fabricación</h3>
-                  <p className="text-xs text-blue-300">Configuración técnica de obra: {setupProject.clientCode}</p>
+                  <p className="text-xs text-blue-300">Configuración técnica de obra: {setupProject.client_code}</p>
                 </div>
               </div>
               <button onClick={() => setSetupProject(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
@@ -239,114 +379,37 @@ const ClientProjectManager: React.FC<ClientProjectManagerProps> = ({ projects, o
 
             <div className="flex-1 overflow-y-auto p-8 space-y-8">
               <input type="file" ref={fileInputRef} hidden accept=".pdf" onChange={handleFileChange} />
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                    <Palette size={14} className="text-blue-500" />
-                    Color / Acabado
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder="Ej: Blanco, Negro Goya, Anodizado..."
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 ring-blue-500/20 outline-none text-sm font-medium"
-                    value={setupProject.manufacturingData?.color || ''}
-                    onChange={(e) => handleUpdateSetupField('color', e.target.value)}
-                  />
+                  <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5"><Palette size={14} className="text-blue-500" />Color / Acabado</label>
+                  <input type="text" placeholder="Ej: Blanco, Negro Goya, Anodizado..." className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 ring-blue-500/20 outline-none text-sm font-medium" value={setupProject.manufacturing_data?.color || ''} onChange={(e) => handleUpdateSetupField('color', e.target.value)}/>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                    <Layers size={14} className="text-blue-500" />
-                    Línea de Carpintería
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder="Ej: Modena, A30, Herrero..."
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 ring-blue-500/20 outline-none text-sm font-medium"
-                    value={setupProject.manufacturingData?.line || ''}
-                    onChange={(e) => handleUpdateSetupField('line', e.target.value)}
-                  />
+                  <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5"><Layers size={14} className="text-blue-500" />Línea de Carpintería</label>
+                  <input type="text" placeholder="Ej: Modena, A30, Herrero..." className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 ring-blue-500/20 outline-none text-sm font-medium" value={setupProject.manufacturing_data?.line || ''} onChange={(e) => handleUpdateSetupField('line', e.target.value)}/>
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                    <Clock size={14} className="text-blue-500" />
-                    Fecha de Entrega Estimada
-                  </label>
-                  <input 
-                    type="date" 
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 ring-blue-500/20 outline-none text-sm font-medium"
-                    value={setupProject.manufacturingData?.deliveryDate || ''}
-                    onChange={(e) => handleUpdateSetupField('deliveryDate', e.target.value)}
-                  />
+                  <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5"><Clock size={14} className="text-blue-500" />Fecha de Entrega Estimada</label>
+                  <input type="date" className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 ring-blue-500/20 outline-none text-sm font-medium" value={setupProject.manufacturing_data?.deliveryDate || ''} onChange={(e) => handleUpdateSetupField('deliveryDate', e.target.value)}/>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                  <FileText size={14} className="text-blue-500" />
-                  Documentación para Taller (PDF)
-                </label>
+                <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5"><FileText size={14} className="text-blue-500" />Documentación para Taller (PDF)</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div 
-                    onClick={() => handleFileClick('materials')}
-                    className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${setupProject.manufacturingData?.materialsPdfUrl ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-50 border-slate-200 hover:border-blue-400'}`}
-                  >
-                    {setupProject.manufacturingData?.materialsPdfUrl ? (
-                      <>
-                        <Check size={24} className="text-emerald-500" />
-                        <span className="text-[10px] font-bold text-emerald-700 uppercase">Materiales Cargado</span>
-                        <span className="text-[8px] text-slate-500 truncate max-w-full">{setupProject.manufacturingData.materialsPdfName}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Upload size={24} className="text-slate-400" />
-                        <span className="text-[10px] font-bold text-slate-500 uppercase">Pedido de Materiales</span>
-                      </>
-                    )}
+                  <div onClick={() => handleFileClick('materials')} className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${setupProject.manufacturing_data?.materialsPdfUrl ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-50 border-slate-200 hover:border-blue-400'}`}>
+                    {setupProject.manufacturing_data?.materialsPdfUrl ? (<><Check size={24} className="text-emerald-500" /><span className="text-[10px] font-bold text-emerald-700 uppercase">Materiales Cargado</span></>) : (<><Upload size={24} className="text-slate-400" /><span className="text-[10px] font-bold text-slate-500 uppercase">Pedido de Materiales</span></>)}
                   </div>
-                  <div 
-                    onClick={() => handleFileClick('optimization')}
-                    className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${setupProject.manufacturingData?.optimizationPdfUrl ? 'bg-indigo-50 border-indigo-300' : 'bg-slate-50 border-slate-200 hover:border-blue-400'}`}
-                  >
-                    {setupProject.manufacturingData?.optimizationPdfUrl ? (
-                      <>
-                        <Check size={24} className="text-indigo-500" />
-                        <span className="text-[10px] font-bold text-indigo-700 uppercase">Optimización Cargada</span>
-                        <span className="text-[8px] text-slate-500 truncate max-w-full">{setupProject.manufacturingData.optimizationPdfName}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Upload size={24} className="text-slate-400" />
-                        <span className="text-[10px] font-bold text-slate-500 uppercase">Optimización de Corte</span>
-                      </>
-                    )}
+                  <div onClick={() => handleFileClick('optimization')} className={`p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${setupProject.manufacturing_data?.optimizationPdfUrl ? 'bg-indigo-50 border-indigo-300' : 'bg-slate-50 border-slate-200 hover:border-blue-400'}`}>
+                    {setupProject.manufacturing_data?.optimizationPdfUrl ? (<><Check size={24} className="text-indigo-500" /><span className="text-[10px] font-bold text-indigo-700 uppercase">Optimización Cargada</span></>) : (<><Upload size={24} className="text-slate-400" /><span className="text-[10px] font-bold text-slate-500 uppercase">Optimización de Corte</span></>)}
                   </div>
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                  <Info size={14} className="text-blue-500" />
-                  Detalles para Taller
-                </label>
-                <textarea 
-                  rows={4}
-                  placeholder="Instrucciones específicas, herrajes, plazos urgentes..."
-                  className="w-full px-5 py-4 rounded-2xl border border-slate-200 focus:ring-2 ring-blue-500/20 outline-none text-sm font-medium resize-none bg-slate-50/50"
-                  value={setupProject.manufacturingData?.details || ''}
-                  onChange={(e) => handleUpdateSetupField('details', e.target.value)}
-                />
-              </div>
             </div>
 
-            <div className="p-6 bg-slate-50 border-t border-slate-200 flex gap-4">
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-4">
               <button onClick={() => setSetupProject(null)} className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-colors">Cancelar</button>
-              <button 
-                onClick={handleConfirmProduction}
-                className="flex-[2] py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-colors"
-              >
-                Confirmar e Iniciar Fabricación
-              </button>
+              <button onClick={handleConfirmProduction} className="flex-[2] py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-colors">Confirmar e Iniciar Fabricación</button>
             </div>
           </div>
         </div>

@@ -1,18 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-// Función segura para obtener la API Key
-const getApiKey = (): string => {
-  try {
-    // Intentar obtenerla del entorno. Si falla, devolver string vacío.
-    // Esto previene que la aplicación "crashee" al inicio.
-    const key = process.env.API_KEY;
-    return key || '';
-  } catch {
-    return '';
-  }
-};
-
 const SYSTEM_PROMPT = `Eres un asistente experto para Arista Studio 2, una empresa de aberturas de aluminio y vidriería. 
 Tus funciones incluyen:
 1. Ayudar a calcular dimensiones de perfiles y vidrios (considerando descuentos por línea: Modena, A30, etc.).
@@ -22,15 +10,17 @@ Tus funciones incluyen:
 Habla siempre de forma profesional y técnica en español.`;
 
 export async function askGemini(prompt: string) {
-  const apiKey = getApiKey();
-  
-  if (!apiKey) {
+  // Directly use process.env.API_KEY as per the library guidelines
+  if (!process.env.API_KEY) {
     console.warn("Gemini API Key no configurada.");
     return "El asistente de IA no está configurado (falta API Key), pero puedes seguir usando el resto del sistema de gestión comercial.";
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey });
+    // Initializing with named parameter as required by @google/genai guidelines
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    // Calling generateContent directly with the model and prompt, using correct model naming
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
@@ -39,6 +29,8 @@ export async function askGemini(prompt: string) {
         temperature: 0.7,
       },
     });
+
+    // Extracting text using the .text property (not a method) as per SDK documentation
     return response.text || "No obtuve respuesta del modelo.";
   } catch (error) {
     console.error("Error calling Gemini:", error);

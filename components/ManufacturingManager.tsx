@@ -24,20 +24,21 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
 
   const filteredProjects = projects.filter(p => 
     p.status === ProjectStatus.PRODUCCION && 
-    (p.requestData?.clientName.toLowerCase().includes(searchTerm.toLowerCase()) || p.clientCode?.toLowerCase().includes(searchTerm.toLowerCase()))
+    (p.requestData?.client_name.toLowerCase().includes(searchTerm.toLowerCase()) || p.client_code?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const handleOpenModal = (project: Project) => {
-    if (!project.manufacturingData?.tasks) {
+    // Fix: manufacturingData -> manufacturing_data
+    if (!project.manufacturing_data?.tasks) {
       const defaultTasks: ManufacturingTask[] = [
         { id: 'task_materials', label: 'Compra de materiales', isCompleted: false, notes: '' },
         { id: 'task_glass', label: 'Vidrios', isCompleted: false, notes: '' },
         { id: 'task_aluminum', label: 'Aluminio', isCompleted: false, notes: '' },
         { id: 'task_installation', label: 'Colocación', isCompleted: false, notes: '' },
       ];
-      const updatedData = { ...project.manufacturingData, tasks: defaultTasks };
-      onUpdateProject(project.id, { manufacturingData: updatedData });
-      setEditingProject({ ...project, manufacturingData: updatedData });
+      const updatedData = { ...project.manufacturing_data, tasks: defaultTasks };
+      onUpdateProject(project.id, { manufacturing_data: updatedData });
+      setEditingProject({ ...project, manufacturing_data: updatedData });
     } else {
       setEditingProject(project);
     }
@@ -52,38 +53,38 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
   const updateManufacturingField = (field: string, value: any) => {
     if (!editingProject) return;
     const updatedData = {
-      ...editingProject.manufacturingData,
+      ...editingProject.manufacturing_data,
       [field]: value
     };
-    onUpdateProject(editingProject.id, { manufacturingData: updatedData });
-    setEditingProject({ ...editingProject, manufacturingData: updatedData });
+    onUpdateProject(editingProject.id, { manufacturing_data: updatedData });
+    setEditingProject({ ...editingProject, manufacturing_data: updatedData });
   };
 
   const handleStatusChange = (id: string, status: ProductionStatus) => {
     const project = projects.find(p => p.id === id);
     if (project) {
       const updatedData = {
-        ...project.manufacturingData,
+        ...project.manufacturing_data,
         productionStatus: status
       };
-      onUpdateProject(id, { manufacturingData: updatedData });
+      onUpdateProject(id, { manufacturing_data: updatedData });
       if (editingProject?.id === id) {
-        setEditingProject({ ...editingProject, manufacturingData: updatedData });
+        setEditingProject({ ...editingProject, manufacturing_data: updatedData });
       }
     }
   };
 
   const handleToggleTask = (taskId: string) => {
-    if (!editingProject || !editingProject.manufacturingData?.tasks) return;
-    const updatedTasks = editingProject.manufacturingData.tasks.map(t => 
+    if (!editingProject || !editingProject.manufacturing_data?.tasks) return;
+    const updatedTasks = editingProject.manufacturing_data.tasks.map((t: ManufacturingTask) => 
       t.id === taskId ? { ...t, isCompleted: !t.isCompleted } : t
     );
     updateManufacturingField('tasks', updatedTasks);
   };
 
   const handleUpdateTaskNotes = (taskId: string, notes: string) => {
-    if (!editingProject || !editingProject.manufacturingData?.tasks) return;
-    const updatedTasks = editingProject.manufacturingData.tasks.map(t => 
+    if (!editingProject || !editingProject.manufacturing_data?.tasks) return;
+    const updatedTasks = editingProject.manufacturing_data.tasks.map((t: ManufacturingTask) => 
       t.id === taskId ? { ...t, notes } : t
     );
     updateManufacturingField('tasks', updatedTasks);
@@ -100,7 +101,7 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
       user: 'Taller'
     };
 
-    const updatedLogs = [log, ...(editingProject.manufacturingData?.workshopLogs || [])];
+    const updatedLogs = [log, ...(editingProject.manufacturing_data?.workshopLogs || [])];
     updateManufacturingField('workshopLogs', updatedLogs);
     setNewLog('');
   };
@@ -136,7 +137,7 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
     if (schedulingInstallation) {
       onUpdateProject(schedulingInstallation.id, {
         status: ProjectStatus.INSTALACION,
-        installationData: {
+        installation_data: {
           ...installationData,
           isCompleted: false,
           notes: ''
@@ -186,14 +187,14 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
             <div className="p-6 border-b border-slate-50 bg-slate-50/50">
               <div className="flex justify-between items-start mb-4">
                 <div className="bg-blue-600 text-white px-4 py-1.5 rounded-xl text-sm font-black tracking-wider uppercase shadow-lg shadow-blue-500/20">
-                  {project.clientCode}
+                  {project.client_code}
                 </div>
                 
                 <div className="relative group/status">
                   <select 
-                    value={project.manufacturingData?.productionStatus || ProductionStatus.NO_INICIADO}
+                    value={project.manufacturing_data?.productionStatus || ProductionStatus.NO_INICIADO}
                     onChange={(e) => handleStatusChange(project.id, e.target.value as ProductionStatus)}
-                    className={`appearance-none pl-3 pr-8 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all cursor-pointer focus:outline-none ${getProductionStatusColor(project.manufacturingData?.productionStatus)}`}
+                    className={`appearance-none pl-3 pr-8 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all cursor-pointer focus:outline-none ${getProductionStatusColor(project.manufacturing_data?.productionStatus)}`}
                   >
                     {Object.values(ProductionStatus).map(s => (
                       <option key={s} value={s}>{s}</option>
@@ -202,16 +203,16 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
                   <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-50" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">{project.requestData?.clientName}</h3>
+              <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">{project.requestData?.client_name}</h3>
               <div className="flex flex-col gap-1 mt-1">
                 <p className="text-sm text-slate-500 flex items-center gap-1.5">
                   <MapPin size={14} className="text-slate-400" />
                   {project.requestData?.address}
                 </p>
-                {project.manufacturingData?.deliveryDate && (
+                {project.manufacturing_data?.deliveryDate && (
                   <p className="text-xs font-bold text-blue-600 flex items-center gap-1.5">
                     <Clock size={12} />
-                    Salida Taller: {project.manufacturingData.deliveryDate}
+                    Salida Taller: {project.manufacturing_data.deliveryDate}
                   </p>
                 )}
               </div>
@@ -221,18 +222,18 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Color</span>
-                  <p className="text-sm font-bold text-slate-800">{project.manufacturingData?.color || 'Sin definir'}</p>
+                  <p className="text-sm font-bold text-slate-800">{project.manufacturing_data?.color || 'Sin definir'}</p>
                 </div>
                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Línea</span>
-                  <p className="text-sm font-bold text-slate-800">{project.manufacturingData?.line || 'Sin definir'}</p>
+                  <p className="text-sm font-bold text-slate-800">{project.manufacturing_data?.line || 'Sin definir'}</p>
                 </div>
               </div>
 
               <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 space-y-2">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Progreso de Secciones</span>
                 <div className="grid grid-cols-2 gap-2">
-                  {(project.manufacturingData?.tasks || []).map(task => (
+                  {(project.manufacturing_data?.tasks || []).map((task: ManufacturingTask) => (
                     <div key={task.id} className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-sm border ${task.isCompleted ? 'bg-emerald-500 border-emerald-600' : 'bg-white border-slate-300'}`}>
                         {task.isCompleted && <Check size={8} className="text-white" />}
@@ -246,8 +247,8 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
               <div className="space-y-3">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Documentos Técnicos</span>
                 <div className="flex flex-col gap-2">
-                  {project.manufacturingData?.materialsPdfUrl ? (
-                    <a href={project.manufacturingData.materialsPdfUrl} target="_blank" className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-blue-400 transition-colors">
+                  {project.manufacturing_data?.materialsPdfUrl ? (
+                    <a href={project.manufacturing_data.materialsPdfUrl} target="_blank" className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-blue-400 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-red-50 text-red-500 rounded-lg"><FileText size={16} /></div>
                         <span className="text-xs font-bold text-slate-700">Pedido Materiales</span>
@@ -260,8 +261,8 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
                       <span className="text-[10px] font-bold uppercase">Materiales no cargados</span>
                     </div>
                   )}
-                  {project.manufacturingData?.optimizationPdfUrl ? (
-                    <a href={project.manufacturingData.optimizationPdfUrl} target="_blank" className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-blue-400 transition-colors">
+                  {project.manufacturing_data?.optimizationPdfUrl ? (
+                    <a href={project.manufacturing_data.optimizationPdfUrl} target="_blank" className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-blue-400 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-indigo-50 text-indigo-500 rounded-lg"><CheckCircle size={16} /></div>
                         <span className="text-xs font-bold text-slate-700">Optimización de Corte</span>
@@ -288,7 +289,7 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
               </button>
               <button 
                 onClick={() => handleFinishProduction(project)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold transition-all shadow-lg ${project.manufacturingData?.productionStatus === ProductionStatus.FINALIZADA ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/10 animate-pulse' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-bold transition-all shadow-lg ${project.manufacturing_data?.productionStatus === ProductionStatus.FINALIZADA ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/10 animate-pulse' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
               >
                 <Truck size={16} />
                 A Instalación
@@ -303,7 +304,7 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-8 animate-in zoom-in-95 duration-200">
             <h3 className="text-xl font-black text-slate-900 mb-2">Programar Instalación</h3>
-            <p className="text-sm text-slate-500 mb-6">Completa los datos de equipo para la obra <span className="font-bold text-slate-900">{schedulingInstallation.clientCode}</span>.</p>
+            <p className="text-sm text-slate-500 mb-6">Completa los datos de equipo para la obra <span className="font-bold text-slate-900">{schedulingInstallation.client_code}</span>.</p>
             
             <div className="space-y-4">
               <div className="space-y-1.5">
@@ -332,7 +333,7 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
               <button 
                 onClick={handleConfirmInstallation}
                 disabled={!installationData.scheduledDate || !installationData.teamName}
-                className="flex-[2] py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 text-xs uppercase tracking-widest disabled:opacity-50"
+                className="flex-[2] py-3 bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/20 text-xs uppercase tracking-widest disabled:opacity-50"
               >
                 Mover a Instalación
               </button>
@@ -355,15 +356,15 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
                   <Factory size={32} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black tracking-tight">{editingProject.clientCode}</h3>
+                  <h3 className="text-2xl font-black tracking-tight">{editingProject.client_code}</h3>
                   <div className="flex items-center gap-3 mt-1">
-                    <p className="text-sm text-blue-300 font-medium">{editingProject.requestData?.clientName}</p>
+                    <p className="text-sm text-blue-300 font-medium">{editingProject.requestData?.client_name}</p>
                     <span className="text-blue-700 font-bold">•</span>
                     <div className="relative inline-block">
                       <select 
-                        value={editingProject.manufacturingData?.productionStatus || ProductionStatus.NO_INICIADO}
+                        value={editingProject.manufacturing_data?.productionStatus || ProductionStatus.NO_INICIADO}
                         onChange={(e) => handleStatusChange(editingProject.id, e.target.value as ProductionStatus)}
-                        className={`appearance-none pl-3 pr-8 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all cursor-pointer focus:outline-none ${getProductionStatusColor(editingProject.manufacturingData?.productionStatus)}`}
+                        className={`appearance-none pl-3 pr-8 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all cursor-pointer focus:outline-none ${getProductionStatusColor(editingProject.manufacturing_data?.productionStatus)}`}
                       >
                         {Object.values(ProductionStatus).map(s => (
                           <option key={s} value={s}>{s}</option>
@@ -389,11 +390,11 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-slate-500 uppercase">Color</label>
-                    <p className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-800">{editingProject.manufacturingData?.color || 'N/A'}</p>
+                    <p className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-800">{editingProject.manufacturing_data?.color || 'N/A'}</p>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-slate-500 uppercase">Línea</label>
-                    <p className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-800">{editingProject.manufacturingData?.line || 'N/A'}</p>
+                    <p className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-800">{editingProject.manufacturing_data?.line || 'N/A'}</p>
                   </div>
                   <div className="pt-4 border-t border-slate-200 space-y-3">
                     <label className="text-[10px] font-bold text-slate-500 uppercase block">Documentación Técnica</label>
@@ -401,19 +402,19 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
                       <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200">
                         <div className="flex items-center gap-2 truncate">
                           <FileText size={16} className="text-red-500 shrink-0" />
-                          <span className="text-xs font-bold truncate">{editingProject.manufacturingData?.materialsPdfName || 'Materiales'}</span>
+                          <span className="text-xs font-bold truncate">{editingProject.manufacturing_data?.materialsPdfName || 'Materiales'}</span>
                         </div>
-                        {editingProject.manufacturingData?.materialsPdfUrl && (
-                          <a href={editingProject.manufacturingData.materialsPdfUrl} target="_blank" className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg"><Download size={14}/></a>
+                        {editingProject.manufacturing_data?.materialsPdfUrl && (
+                          <a href={editingProject.manufacturing_data.materialsPdfUrl} target="_blank" className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg"><Download size={14}/></a>
                         )}
                       </div>
                       <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200">
                         <div className="flex items-center gap-2 truncate">
                           <CheckCircle size={16} className="text-indigo-500 shrink-0" />
-                          <span className="text-xs font-bold truncate">{editingProject.manufacturingData?.optimizationPdfName || 'Cortes'}</span>
+                          <span className="text-xs font-bold truncate">{editingProject.manufacturing_data?.optimizationPdfName || 'Cortes'}</span>
                         </div>
-                        {editingProject.manufacturingData?.optimizationPdfUrl && (
-                          <a href={editingProject.manufacturingData.optimizationPdfUrl} target="_blank" className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg"><Download size={14}/></a>
+                        {editingProject.manufacturing_data?.optimizationPdfUrl && (
+                          <a href={editingProject.manufacturing_data.optimizationPdfUrl} target="_blank" className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg"><Download size={14}/></a>
                         )}
                       </div>
                     </div>
@@ -428,7 +429,7 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
                 </h4>
 
                 <div className="space-y-6">
-                  {(editingProject.manufacturingData?.tasks || []).map((task) => (
+                  {(editingProject.manufacturing_data?.tasks || []).map((task: ManufacturingTask) => (
                     <div key={task.id} className={`p-5 rounded-3xl border transition-all ${task.isCompleted ? 'bg-emerald-50/30 border-emerald-100' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -472,7 +473,7 @@ const ManufacturingManager: React.FC<ManufacturingManagerProps> = ({ projects, o
                   <button type="submit" className="w-full mt-2 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold">Enviar</button>
                 </form>
                 <div className="flex-1 overflow-y-auto space-y-4">
-                  {(editingProject.manufacturingData?.workshopLogs || []).map((log) => (
+                  {(editingProject.manufacturing_data?.workshopLogs || []).map((log: WorkshopLog) => (
                     <div key={log.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
                       <span className="text-[9px] text-slate-400 block mb-1">{log.date}</span>
                       <p className="text-[11px] text-slate-700 leading-normal">{log.text}</p>

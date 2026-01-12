@@ -1,175 +1,280 @@
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Building2, CheckCircle2, XCircle, Info, RefreshCcw, Plus, UserPlus, ArrowRight, Settings } from 'lucide-react';
-import { Organization, Subscription } from '../types';
 import { supabase } from '../services/supabase';
+import { Organization } from '../types';
+import { 
+  Building2, ShieldCheck, ShieldAlert, Globe, 
+  ToggleLeft, ToggleRight, Plus, Search, 
+  CreditCard, Loader2, UserPlus, Mail, Key,
+  X, Check, Lock, Ruler
+} from 'lucide-react';
 
 const SaaSAdmin: React.FC = () => {
   const [orgs, setOrgs] = useState<Organization[]>([]);
-  const [subs, setSubs] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddOrg, setShowAddOrg] = useState(false);
-  const [newOrg, setNewOrg] = useState({ name: '', slug: '', adminEmail: '', adminPassword: '' });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  
+  const [userModalOrg, setUserModalOrg] = useState<Organization | null>(null);
+  const [newUser, setNewUser] = useState({ email: '', password: '' });
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [userStatus, setUserStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchOrgs = async () => {
     setLoading(true);
-    const { data: organizations } = await supabase.from('organizations').select('*');
-    const { data: subscriptions } = await supabase.from('subscriptions').select('*');
+    const { data, error } = await supabase
+      .from('organizations')
+      .select(`
+        *,
+        subscription:subscriptions (*)
+      `)
+      .order('created_at', { ascending: false });
     
-    if (organizations) setOrgs(organizations);
-    if (subscriptions) setSubs(subscriptions);
+    if (!error && data) setOrgs(data as any);
     setLoading(false);
   };
 
-  const handleCreateOrganization = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Lógica para crear organización y su suscripción por defecto
-    const { data, error } = await supabase
-      .from('organizations')
-      .insert({ name: newOrg.name, slug: newOrg.slug })
-      .select()
-      .single();
+  useEffect(() => { fetchOrgs(); }, []);
 
-    if (data) {
-      await supabase.from('subscriptions').insert({ organization_id: data.id });
-      // Aquí se dispararía la creación del usuario administrador vía Supabase Auth
-      // (Requiere Service Role o Edge Function para creación forzada)
-      fetchData();
-      setShowAddOrg(false);
-      setNewOrg({ name: '', slug: '', adminEmail: '', adminPassword: '' });
-    }
-  };
-
-  const toggleModule = async (orgId: string, module: keyof Subscription) => {
-    const currentSub = subs.find(s => s.organization_id === orgId);
-    const newValue = currentSub ? !currentSub[module] : true;
-    
+  const toggleApp = async (orgId: string, appField: string, currentValue: boolean) => {
+    setUpdatingId(`${orgId}-${appField}`);
     const { error } = await supabase
       .from('subscriptions')
-      .upsert({ 
-        organization_id: orgId, 
-        [module]: newValue 
+      .update({ [appField]: !currentValue })
+      .eq('organization_id', orgId);
+    
+    if (!error) await fetchOrgs();
+    setUpdatingId(null);
+  };
+
+  const toggleStatus = async (orgId: string, currentStatus: boolean) => {
+    setUpdatingId(`${orgId}-status`);
+    const { error } = await supabase
+      .from('organizations')
+      .update({ is_active: !currentStatus })
+      .eq('id', orgId);
+    
+    if (!error) await fetchOrgs();
+    setUpdatingId(null);
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userModalOrg) return;
+    setIsCreatingUser(true);
+    setUserStatus(null);
+
+    try {
+      const cleanEmail = newUser.email.toLowerCase().trim();
+      
+      // 1. Registro en Auth. Pasamos metadata para que el sistema sepa la org desde el inicio.
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: newUser.password,
+        options: {
+          data: {
+            organization_id: userModalOrg.id,
+            role: 'admin'
+          }
+        }
       });
 
-    if (!error) {
-      setSubs(prev => {
-        const existing = prev.find(s => s.organization_id === orgId);
-        if (existing) {
-          return prev.map(s => s.organization_id === orgId ? { ...s, [module]: newValue } : s);
+      if (authError) throw authError;
+
+      if (data.user) {
+        // 2. Usamos UPSERT. Si el trigger en DB ya lo creó, UPSERT simplemente lo actualiza.
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: data.user.id,
+            email: cleanEmail,
+            role: 'admin',
+            organization_id: userModalOrg.id
+          }, { 
+            onConflict: 'id' 
+          });
+
+        if (profileError && profileError.code !== '23505') { // Ignorar error de duplicado si ocurre
+          console.warn("Posible conflicto de perfil:", profileError);
         }
-        return [...prev, { organization_id: orgId, [module]: newValue } as any];
-      });
+        
+        setUserStatus({ type: 'success', msg: 'Acceso corporativo generado correctamente.' });
+        setNewUser({ email: '', password: '' });
+        
+        setTimeout(() => {
+          setUserModalOrg(null);
+          setUserStatus(null);
+          fetchOrgs();
+        }, 2000);
+      }
+    } catch (err: any) {
+      console.error("Error creating user:", err);
+      let msg = err.message;
+      if (err.message.includes('Database error')) {
+        msg = 'Error de Base de Datos: Verifique que haya eliminado el Trigger en Supabase.';
+      }
+      setUserStatus({ type: 'error', msg });
+    } finally {
+      setIsCreatingUser(false);
     }
   };
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4">
-      <RefreshCcw className="animate-spin text-blue-500" size={40} />
-      <p className="text-slate-400 font-bold uppercase tracking-widest text-xs text-center">Sincronizando con Supabase...</p>
-    </div>
+  const filteredOrgs = orgs.filter(o => 
+    o.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="space-y-8">
-      <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-slate-900 text-white rounded-[1.5rem] shadow-xl shadow-slate-900/10">
-              <ShieldCheck size={32} />
-            </div>
-            <div>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Panel Control Pablo</h3>
-              <p className="text-slate-500 font-medium">Gestión de licencias y empresas clientes.</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => setShowAddOrg(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:scale-[1.02] transition-all"
-          >
-            <Plus size={16} /> Registrar Empresa
-          </button>
+    <div className="space-y-8 animate-fadeIn">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Ecosistema Arista Studio</h2>
+          <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">Master Control SaaS (4 Apps Vinculadas)</p>
         </div>
-
-        <div className="grid grid-cols-1 gap-4">
-          {orgs.map(org => {
-            const sub = subs.find(s => s.organization_id === org.id) || {
-              organization_id: org.id,
-              has_gestor: false,
-              has_medidor: false,
-              has_cotizador_vidrio: false,
-              has_cotizador_aluminio: false
-            };
-            
-            return (
-              <div key={org.id} className="p-8 border border-slate-100 rounded-[2.5rem] bg-[#F8FAFC] hover:border-blue-200 hover:bg-white transition-all flex flex-col lg:flex-row justify-between items-center gap-6 group">
-                <div className="flex items-center gap-5 w-full lg:w-1/3">
-                  <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center border border-slate-200 shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                    <Building2 size={24} />
-                  </div>
-                  <div>
-                    <h4 className="font-black text-slate-900 text-xl leading-tight">{org.name}</h4>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">ID: {org.slug}</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 justify-center lg:justify-end w-full lg:w-2/3">
-                  <ModuleToggle label="Gestor Obras" isActive={sub.has_gestor} onClick={() => toggleModule(org.id, 'has_gestor')} />
-                  <ModuleToggle label="Medidor Móvil" isActive={sub.has_medidor} onClick={() => toggleModule(org.id, 'has_medidor')} />
-                  <ModuleToggle label="Cotiza Vidrio" isActive={sub.has_cotizador_vidrio} onClick={() => toggleModule(org.id, 'has_cotizador_vidrio')} />
-                  <ModuleToggle label="Cotiza Aluminio" isActive={sub.has_cotizador_aluminio} onClick={() => toggleModule(org.id, 'has_cotizador_aluminio')} />
-                </div>
-              </div>
-            );
-          })}
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <input 
+            type="text" 
+            placeholder="Buscar empresa por nombre..."
+            className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 ring-blue-500/20 font-bold"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </div>
 
-      {showAddOrg && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <div className="bg-white rounded-[3rem] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-8 bg-slate-900 text-white flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <UserPlus size={24} className="text-blue-500" />
-                <h3 className="text-xl font-black uppercase tracking-tight">Alta de Nueva Empresa</h3>
+      <div className="grid grid-cols-1 gap-8">
+        {filteredOrgs.map((org) => (
+          <div key={org.id} className={`bg-white rounded-[2.5rem] border transition-all p-10 shadow-sm ${org.is_active ? 'border-slate-200' : 'border-rose-200 bg-rose-50/30'}`}>
+            <div className="flex flex-col xl:flex-row justify-between gap-12">
+              <div className="flex gap-8 xl:w-1/4">
+                <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center shadow-2xl shrink-0 ${org.is_active ? 'bg-slate-900 text-white' : 'bg-rose-100 text-rose-600'}`}>
+                  <Building2 size={40} />
+                </div>
+                <div className="flex flex-col justify-center">
+                  <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-tight">{org.name}</h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Globe size={14} className="text-slate-400" />
+                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{org.slug}.arista.studio</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-6">
+                    <button 
+                      onClick={() => toggleStatus(org.id, org.is_active)}
+                      className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${org.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-600 text-white shadow-lg shadow-rose-600/20'}`}
+                    >
+                      {updatingId === `${org.id}-status` ? <Loader2 size={12} className="animate-spin" /> : (org.is_active ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />)}
+                      {org.is_active ? 'Activa' : 'Baja'}
+                    </button>
+                    <button 
+                      onClick={() => setUserModalOrg(org)}
+                      className="flex items-center gap-2 px-5 py-2 rounded-full bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all border border-blue-100 shadow-sm"
+                    >
+                      <UserPlus size={12} /> Crear Acceso
+                    </button>
+                  </div>
+                </div>
               </div>
-              <button onClick={() => setShowAddOrg(false)} className="text-slate-400 hover:text-white transition-colors">
-                <XCircle size={24} />
-              </button>
+
+              <div className="flex-1">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Apps Disponibles por Organización</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <AppControl 
+                    label="App Gestión" 
+                    icon={<CreditCard size={20} />}
+                    isActive={!!org.subscription?.has_app_gestion} 
+                    loading={updatingId === `${org.id}-has_app_gestion`}
+                    onToggle={() => toggleApp(org.id, 'has_app_gestion', !!org.subscription?.has_app_gestion)}
+                  />
+                  <AppControl 
+                    label="App Vidrio" 
+                    icon={<Globe size={20} />}
+                    isActive={!!org.subscription?.has_app_vidrio} 
+                    loading={updatingId === `${org.id}-has_app_vidrio`}
+                    onToggle={() => toggleApp(org.id, 'has_app_vidrio', !!org.subscription?.has_app_vidrio)}
+                  />
+                  <AppControl 
+                    label="App Aluminio" 
+                    icon={<Building2 size={20} />}
+                    isActive={!!org.subscription?.has_app_aluminio} 
+                    loading={updatingId === `${org.id}-has_app_aluminio`}
+                    onToggle={() => toggleApp(org.id, 'has_app_aluminio', !!org.subscription?.has_app_aluminio)}
+                  />
+                  <AppControl 
+                    label="App Medidor" 
+                    icon={<Ruler size={20} />}
+                    isActive={!!org.subscription?.has_app_medidor} 
+                    loading={updatingId === `${org.id}-has_app_medidor`}
+                    onToggle={() => toggleApp(org.id, 'has_app_medidor', !!org.subscription?.has_app_medidor)}
+                  />
+                </div>
+              </div>
             </div>
+          </div>
+        ))}
+      </div>
+
+      {userModalOrg && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="bg-white rounded-[3rem] w-full max-w-md shadow-2xl p-12 relative animate-in zoom-in-95 duration-200 border border-slate-200">
+            <button onClick={() => setUserModalOrg(null)} className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 transition-colors">
+              <X size={24} />
+            </button>
             
-            <form onSubmit={handleCreateOrganization} className="p-10 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Nombre Comercial</label>
-                  <input required type="text" className="w-full px-6 py-4 bg-slate-50 border rounded-2xl text-sm font-bold" value={newOrg.name} onChange={e => setNewOrg({...newOrg, name: e.target.value})} />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Slug / Identificador</label>
-                  <input required type="text" className="w-full px-6 py-4 bg-slate-50 border rounded-2xl text-sm font-black text-blue-600" value={newOrg.slug} onChange={e => setNewOrg({...newOrg, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})} />
-                </div>
+            <div className="text-center mb-10">
+              <div className="w-20 h-20 bg-blue-600 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-500/20">
+                <Key size={36} />
               </div>
+              <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Acceso Empresa</h3>
+              <p className="text-slate-500 text-[10px] font-black mt-2 uppercase tracking-[0.2em]">{userModalOrg.name}</p>
+            </div>
 
-              <div className="pt-6 border-t border-slate-100">
-                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <Settings size={14} /> Datos Admin Inicial
-                </p>
-                <div className="space-y-4">
-                  <input required type="email" placeholder="Email Admin de Empresa" className="w-full px-6 py-4 bg-slate-50 border rounded-2xl text-sm" value={newOrg.adminEmail} onChange={e => setNewOrg({...newOrg, adminEmail: e.target.value})} />
-                  <input required type="password" placeholder="Contraseña Temporal" className="w-full px-6 py-4 bg-slate-50 border rounded-2xl text-sm" value={newOrg.adminPassword} onChange={e => setNewOrg({...newOrg, adminPassword: e.target.value})} />
-                </div>
+            {userStatus ? (
+              <div className={`p-8 rounded-[2.5rem] text-center space-y-4 animate-in fade-in zoom-in ${userStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'}`}>
+                {userStatus.type === 'success' ? <Check className="mx-auto" size={44} /> : <ShieldAlert className="mx-auto" size={44} />}
+                <p className="text-xs font-black uppercase tracking-widest leading-relaxed">{userStatus.msg}</p>
+                {userStatus.type === 'error' && (
+                  <button onClick={() => setUserStatus(null)} className="mt-4 text-[10px] font-black underline uppercase">Reintentar</button>
+                )}
               </div>
+            ) : (
+              <form onSubmit={handleCreateUser} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-5">Email Corporativo</label>
+                  <div className="relative">
+                    <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input 
+                      required 
+                      type="email" 
+                      placeholder="admin@empresa.com"
+                      className="w-full pl-16 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-full text-sm font-bold text-slate-900 focus:bg-white focus:border-blue-600 outline-none transition-all"
+                      value={newUser.email}
+                      onChange={e => setNewUser({...newUser, email: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-5">Contraseña</label>
+                  <div className="relative">
+                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input 
+                      required 
+                      type="password" 
+                      placeholder="••••••••"
+                      className="w-full pl-16 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-full text-sm font-bold text-slate-900 focus:bg-white focus:border-blue-600 outline-none transition-all"
+                      value={newUser.password}
+                      onChange={e => setNewUser({...newUser, password: e.target.value})}
+                    />
+                  </div>
+                </div>
 
-              <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => setShowAddOrg(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-full font-black text-[10px] uppercase tracking-widest">Cerrar</button>
-                <button type="submit" className="flex-[2] py-4 bg-blue-600 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2">
-                  Crear Empresa <ArrowRight size={14} />
+                <button 
+                  type="submit" 
+                  disabled={isCreatingUser}
+                  className="w-full py-6 bg-slate-900 text-white rounded-full font-black uppercase tracking-widest text-[11px] shadow-2xl hover:bg-blue-600 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                >
+                  {isCreatingUser ? <Loader2 className="animate-spin" size={18} /> : "Vincular Usuario y Generar Perfil"}
                 </button>
-              </div>
-            </form>
+              </form>
+            )}
           </div>
         </div>
       )}
@@ -177,18 +282,18 @@ const SaaSAdmin: React.FC = () => {
   );
 };
 
-const ModuleToggle = ({ label, isActive, onClick }: { label: string, isActive: boolean, onClick: () => void }) => (
-  <button 
-    onClick={onClick}
-    className={`flex items-center gap-2 px-6 py-3 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-tight ${
-      isActive 
-        ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm' 
-        : 'bg-white border-slate-100 text-slate-400 opacity-60'
-    }`}
-  >
-    {isActive ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
-    {label}
-  </button>
+const AppControl = ({ label, icon, isActive, loading, onToggle }: { label: string, icon: React.ReactNode, isActive: boolean, loading: boolean, onToggle: () => void }) => (
+  <div className={`p-6 rounded-[2.2rem] border transition-all flex flex-col items-center gap-4 ${isActive ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
+    <div className={`p-3 rounded-2xl ${isActive ? 'bg-blue-600 text-white' : 'bg-white text-slate-300'}`}>
+      {icon}
+    </div>
+    <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">{label}</span>
+    <button onClick={onToggle} disabled={loading} className="transition-transform active:scale-90">
+      {loading ? <Loader2 size={24} className="animate-spin text-blue-600" /> : (
+        isActive ? <ToggleRight size={40} className="text-blue-600" /> : <ToggleLeft size={40} className="text-slate-300" />
+      )}
+    </button>
+  </div>
 );
 
 export default SaaSAdmin;

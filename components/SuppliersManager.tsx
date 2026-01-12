@@ -14,15 +14,15 @@ const SuppliersManager: React.FC<SuppliersManagerProps> = ({ supplierDebts, onAd
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [newDebt, setNewDebt] = useState<Partial<SupplierDebt>>({
-    supplierName: '',
+    supplier_name: '',
     concept: '',
-    totalAmount: 0,
-    paidAmount: 0,
-    dueDate: new Date().toISOString().split('T')[0],
+    total_amount: 0,
+    paid_amount: 0,
+    due_date: new Date().toISOString().split('T')[0],
   });
 
   const filteredDebts = supplierDebts.filter(d => 
-    d.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    d.supplier_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     d.concept.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -30,24 +30,25 @@ const SuppliersManager: React.FC<SuppliersManagerProps> = ({ supplierDebts, onAd
     e.preventDefault();
     const debt: SupplierDebt = {
       id: `debt_${Date.now()}`,
-      supplierName: newDebt.supplierName || '',
+      organization_id: 'org_1',
+      supplier_name: newDebt.supplier_name || '',
       concept: newDebt.concept || '',
-      totalAmount: Number(newDebt.totalAmount) || 0,
-      paidAmount: Number(newDebt.paidAmount) || 0,
-      dueDate: newDebt.dueDate || '',
-      createdAt: new Date().toISOString().split('T')[0],
-      isPaid: (Number(newDebt.paidAmount) || 0) >= (Number(newDebt.totalAmount) || 0)
+      total_amount: Number(newDebt.total_amount) || 0,
+      paid_amount: Number(newDebt.paid_amount) || 0,
+      due_date: newDebt.due_date || '',
+      created_at: new Date().toISOString().split('T')[0],
+      is_paid: (Number(newDebt.paid_amount) || 0) >= (Number(newDebt.total_amount) || 0)
     };
     onAddDebt(debt);
     setShowAddModal(false);
-    setNewDebt({ supplierName: '', concept: '', totalAmount: 0, paidAmount: 0, dueDate: new Date().toISOString().split('T')[0] });
+    setNewDebt({ supplier_name: '', concept: '', total_amount: 0, paid_amount: 0, due_date: new Date().toISOString().split('T')[0] });
   };
 
   const handleUpdatePayment = (id: string, amount: number) => {
     const debt = supplierDebts.find(d => d.id === id);
     if (debt) {
-      const newPaid = Math.min(debt.totalAmount, amount);
-      onUpdateDebt(id, { paidAmount: newPaid, isPaid: newPaid >= debt.totalAmount });
+      const newPaid = Math.min(debt.total_amount, amount);
+      onUpdateDebt(id, { paid_amount: newPaid, is_paid: newPaid >= debt.total_amount });
     }
   };
 
@@ -80,9 +81,9 @@ const SuppliersManager: React.FC<SuppliersManagerProps> = ({ supplierDebts, onAd
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredDebts.map((debt) => {
-          const progress = (debt.paidAmount / debt.totalAmount) * 100;
-          const remaining = debt.totalAmount - debt.paidAmount;
-          const isOverdue = new Date(debt.dueDate) < new Date() && !debt.isPaid;
+          const progress = (debt.paid_amount / debt.total_amount) * 100;
+          const remaining = debt.total_amount - debt.paid_amount;
+          const isOverdue = new Date(debt.due_date) < new Date() && !debt.is_paid;
 
           return (
             <div key={debt.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 hover:border-blue-300 transition-all group">
@@ -91,8 +92,8 @@ const SuppliersManager: React.FC<SuppliersManagerProps> = ({ supplierDebts, onAd
                   <Truck size={24} />
                 </div>
                 <div className="flex flex-col items-end">
-                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border ${debt.isPaid ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
-                    {debt.isPaid ? 'Saldado' : 'Pendiente'}
+                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border ${debt.is_paid ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
+                    {debt.is_paid ? 'Saldado' : 'Pendiente'}
                   </span>
                   {isOverdue && (
                     <span className="text-[8px] font-bold text-red-500 mt-1 flex items-center gap-1 uppercase">
@@ -102,24 +103,24 @@ const SuppliersManager: React.FC<SuppliersManagerProps> = ({ supplierDebts, onAd
                 </div>
               </div>
 
-              <h3 className="text-lg font-black text-slate-900 truncate">{debt.supplierName}</h3>
+              <h3 className="text-lg font-black text-slate-900 truncate">{debt.supplier_name}</h3>
               <p className="text-xs text-slate-500 font-medium mb-4">{debt.concept}</p>
 
               <div className="space-y-4">
                 <div className="flex justify-between items-end text-sm">
                   <div>
                     <span className="text-[10px] font-black text-slate-400 uppercase block">Total Deuda</span>
-                    <span className="font-black text-slate-800">${debt.totalAmount.toLocaleString()}</span>
+                    <span className="font-black text-slate-800">${debt.total_amount.toLocaleString()}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] font-black text-slate-400 uppercase block">Pagado</span>
-                    <span className="font-bold text-emerald-600">${debt.paidAmount.toLocaleString()}</span>
+                    <span className="font-bold text-emerald-600">${debt.paid_amount.toLocaleString()}</span>
                   </div>
                 </div>
 
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div 
-                    className={`h-full transition-all duration-500 ${debt.isPaid ? 'bg-emerald-500' : 'bg-blue-500'}`} 
+                    className={`h-full transition-all duration-500 ${debt.is_paid ? 'bg-emerald-500' : 'bg-blue-500'}`} 
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -127,7 +128,7 @@ const SuppliersManager: React.FC<SuppliersManagerProps> = ({ supplierDebts, onAd
                 <div className="flex items-center justify-between gap-4 pt-2">
                   <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase">
                     <Calendar size={12} />
-                    Vence: {debt.dueDate}
+                    Vence: {debt.due_date}
                   </div>
                   <button 
                     onClick={() => onDeleteDebt(debt.id)}
@@ -146,13 +147,13 @@ const SuppliersManager: React.FC<SuppliersManagerProps> = ({ supplierDebts, onAd
                           type="number" 
                           className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold focus:ring-2 ring-blue-500/10 outline-none"
                           placeholder="Monto..."
-                          value={debt.paidAmount}
+                          value={debt.paid_amount}
                           onChange={(e) => handleUpdatePayment(debt.id, Number(e.target.value))}
                         />
                       </div>
                       <button 
-                        disabled={debt.isPaid}
-                        onClick={() => handleUpdatePayment(debt.id, debt.totalAmount)}
+                        disabled={debt.is_paid}
+                        onClick={() => handleUpdatePayment(debt.id, debt.total_amount)}
                         className="px-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-tight disabled:opacity-30"
                       >
                         Saldar
@@ -179,25 +180,25 @@ const SuppliersManager: React.FC<SuppliersManagerProps> = ({ supplierDebts, onAd
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase">Nombre del Proveedor</label>
-                <input required type="text" className="w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-bold" placeholder="Ej: ALUAR / VASA" value={newDebt.supplierName} onChange={e => setNewDebt({...newDebt, supplierName: e.target.value})} />
+                <input required type="text" className="w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-bold" placeholder="Ej: ALUAR / VASA" value={newDebt.supplier_name || ''} onChange={e => setNewDebt({...newDebt, supplier_name: e.target.value})} />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase">Concepto / Insumo</label>
-                <input required type="text" className="w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm" placeholder="Ej: Perfiles Modena Blanco" value={newDebt.concept} onChange={e => setNewDebt({...newDebt, concept: e.target.value})} />
+                <input required type="text" className="w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm" placeholder="Ej: Perfiles Modena Blanco" value={newDebt.concept || ''} onChange={e => setNewDebt({...newDebt, concept: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase">Monto Total</label>
-                  <input required type="number" className="w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-bold" value={newDebt.totalAmount || ''} onChange={e => setNewDebt({...newDebt, totalAmount: Number(e.target.value)})} />
+                  <input required type="number" className="w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-bold" value={newDebt.total_amount || ''} onChange={e => setNewDebt({...newDebt, total_amount: Number(e.target.value)})} />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase">Pago Inicial</label>
-                  <input type="number" className="w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-bold" value={newDebt.paidAmount || ''} onChange={e => setNewDebt({...newDebt, paidAmount: Number(e.target.value)})} />
+                  <input type="number" className="w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-bold" value={newDebt.paid_amount || ''} onChange={e => setNewDebt({...newDebt, paid_amount: Number(e.target.value)})} />
                 </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase">Fecha de Vencimiento</label>
-                <input type="date" className="w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm" value={newDebt.dueDate} onChange={e => setNewDebt({...newDebt, dueDate: e.target.value})} />
+                <input type="date" className="w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm" value={newDebt.due_date || ''} onChange={e => setNewDebt({...newDebt, due_date: e.target.value})} />
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs uppercase">Cancelar</button>
